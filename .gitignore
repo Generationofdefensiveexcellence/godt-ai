@@ -1,0 +1,22 @@
+# Ignore everything
+*
+
+# But do not ignore the .gitignore file itself
+!.gitignore
+
+# Un-ignore the main code file
+!yoyov5_no_skip_google_server.py
+
+# Un-ignore essential configuration files (if needed)
+!requirements.txt
+!README.md
+
+# Un-ignore directories for templates and static assets
+!templates/
+!static/
+venv/
+.env
+venv/
+.env
+static/uploads/
+*.h5

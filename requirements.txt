@@ -1,0 +1,12 @@
+Flask
+Flask_SQLAlchemy
+Flask_Login
+Flask_Mail
+python-dotenv
+celery
+redis
+ultralytics
+opencv-python
+openai
+numpy
+SQLAlchemy<2.0
