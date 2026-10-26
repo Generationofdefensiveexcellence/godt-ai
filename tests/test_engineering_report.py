@@ -1,11 +1,13 @@
 """Regression tests for the combined engineering report."""
 
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
 
-from tools.engineering_report import build_engineering_report
+from tools.engineering_report import build_engineering_report, main
 from tools.health_findings import HealthFinding
 
 
@@ -103,6 +105,50 @@ class EngineeringReportTests(unittest.TestCase):
             for finding in findings
             if finding.check.startswith("provider_failure_")
         ))
+
+
+    def test_cli_prints_status_summary(self):
+        findings = [
+            HealthFinding("dep_ok", "pass", "info", "Matched.", "No change."),
+            HealthFinding("dep_bad", "fail", "high", "Mismatch.", "Review it."),
+            HealthFinding("lesson", "unknown", "medium", "Not checked.", "Verify it."),
+        ]
+        output = StringIO()
+        with patch("tools.engineering_report.build_engineering_report", return_value=findings):
+            with redirect_stdout(output):
+                result = main(["--change", "test change"])
+        self.assertEqual(result, 0)
+        self.assertIn("PASS: 1 | WARNING: 0 | FAIL: 1 | UNKNOWN: 1", output.getvalue())
+
+    def test_cli_hides_passing_findings_by_default(self):
+        findings = [
+            HealthFinding("dep_ok", "pass", "info", "Matched.", "No change."),
+            HealthFinding("dep_bad", "fail", "high", "Mismatch.", "Review it."),
+        ]
+        output = StringIO()
+        with patch("tools.engineering_report.build_engineering_report", return_value=findings):
+            with redirect_stdout(output):
+                main(["--change", "test change"])
+        self.assertNotIn("[PASS] dep_ok", output.getvalue())
+        self.assertIn("[FAIL] dep_bad", output.getvalue())
+
+    def test_cli_all_option_displays_passing_findings(self):
+        findings = [
+            HealthFinding("dep_ok", "pass", "info", "Matched.", "No change."),
+        ]
+        output = StringIO()
+        with patch("tools.engineering_report.build_engineering_report", return_value=findings):
+            with redirect_stdout(output):
+                main(["--change", "test change", "--all"])
+        self.assertIn("[PASS] dep_ok", output.getvalue())
+
+    def test_cli_requires_change_argument(self):
+        errors = StringIO()
+        with redirect_stderr(errors):
+            with self.assertRaises(SystemExit) as raised:
+                main([])
+        self.assertEqual(raised.exception.code, 2)
+        self.assertIn("--change", errors.getvalue())
 
 
 if __name__ == "__main__":
